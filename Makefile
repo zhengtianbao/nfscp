@@ -1,6 +1,8 @@
 # set default shell
 SHELL=/bin/bash -o pipefail -o errexit
 
+TAG ?= $(shell cat TAG)
+
 REPO_INFO ?= $(shell git config --get remote.origin.url)
 COMMIT_SHA ?= git-$(shell git rev-parse --short HEAD)
 PKG = github.com/zhengtianbao/nfscp
