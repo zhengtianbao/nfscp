@@ -24,7 +24,7 @@ func parseFlags() (bool, *Configuration, error) {
 	var err error
 	var (
 		recursive   = pflag.BoolP("recursive", "r", false, `Recursively copy entire directories.  Note that scp follows symbolic links encountered in the tree traversal.`)
-		limit       = pflag.IntP("limit", "l", 0, `Limits the used bandwidth, specified in Kbit/s.`)
+		limit       = pflag.IntP("limit", "l", 0, `Limits the used bandwidth, specified in KB/s.`)
 		quiet       = pflag.BoolP("quiet", "q", false, `Quiet mode: disables the progress meter as well as warning and diagnostic messages.`)
 		showVersion = pflag.Bool("version", false, `Show release information about the nfscp and exit.`)
 		debug       = pflag.Bool("debug", false, `Show detail debug information.`)
