@@ -10,6 +10,9 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	_ "path"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -25,6 +28,7 @@ func main() {
 
 	showVersion, conf, err := parseFlags()
 	if err != nil {
+		log.Fatalf("failed: %v", err)
 		pflag.Usage()
 		os.Exit(1)
 	}
@@ -32,17 +36,16 @@ func main() {
 		fmt.Println(version.String())
 		os.Exit(0)
 	}
-	fmt.Printf("%+v\n", conf)
 
 	mount, err := nfs.DialMount(conf.Host)
 	if err != nil {
 		log.Fatalf("unable to dial MOUNT service: %v", err)
 	}
 	defer mount.Close()
+	// TODO: use hostname
+	auth := rpc.NewAuthUnix("hasselhoff", 1000, 1000)
 
-	auth := rpc.NewAuthUnix("hasselhoff", 1001, 1001)
-
-	v, err := mount.Mount(conf.Dest, auth.Auth())
+	v, err := mount.Mount(conf.Dest.Root, auth.Auth())
 
 	if err != nil {
 		fmt.Println(conf.Dest)
@@ -50,23 +53,44 @@ func main() {
 	}
 	defer v.Close()
 
-	if err = cp(v, conf.Src, conf.Target, conf.Limit); err != nil {
-		log.Fatalf("fail")
+	// nfscp -r /root/test/dir1 nfshost:/nfsdata/
+	// will create /nfsdata/dir1
+	err = filepath.Walk(conf.Src.AbsPath, func(path string, info os.FileInfo, err error) error {
+		rel := strings.Split(path, conf.Src.AbsPath)
+		mkpath := conf.Src.Name + rel[1]
+		if info.IsDir() {
+			// nfs create dir
+			// TODO: dir already exist check
+			fmt.Println("newdir:", mkpath)
+			_, err = v.Mkdir(mkpath, 0777)
+			return err
+		}
+
+		fmt.Println("file:", info.Name(), "in directory:", path, "remote target:", mkpath)
+		target := mkpath
+		if err = cp(v, path, target, conf.Limit); err != nil {
+			log.Fatal("fail")
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		log.Fatalf("failed: %v", err)
 	}
 }
 
 const maxBuffSize = 1024 * 1024 // 1024 kb
 
 func cp(v *nfs.Target, source string, target string, speedLimit int) error {
-	fmt.Printf("%s --> %s", source, target)
-	// create a temp file
+	//fmt.Printf("%s --> %s\n", source, target)
+
 	f, err := os.Open(source)
 	if err != nil {
 		log.Fatalf("error openning random: %s", err.Error())
 		return err
 	}
-
-	wr, err := v.OpenFile(source, 0777)
+	// TODO: FileMode set as source
+	wr, err := v.OpenFile(target, 0777)
 	if err != nil {
 		log.Fatalf("write fail: %s", err.Error())
 		return err
@@ -139,7 +163,7 @@ func cp(v *nfs.Target, source string, target string, speedLimit int) error {
 
 	//
 	// get the file we wrote and calc the sum
-	rdr, err := v.Open(source)
+	rdr, err := v.Open(target)
 	if err != nil {
 		fmt.Errorf("read error: %v", err)
 		return err
@@ -159,7 +183,7 @@ func cp(v *nfs.Target, source string, target string, speedLimit int) error {
 		log.Fatalf("sums didn't match. actual=%x expected=%s", actualSum, expectedSum) //  Got=0%x expected=0%x", string(buf), testdata)
 	}
 
-	log.Printf("Sums match %x %x", actualSum, expectedSum)
+	//log.Printf("Sums match %x %x", actualSum, expectedSum)
 	return nil
 }
 

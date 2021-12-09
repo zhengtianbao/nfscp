@@ -4,26 +4,36 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/pflag"
 	"github.com/vmware/go-nfs-client/nfs/util"
 )
 
+type Source struct {
+	IsDir   bool
+	AbsPath string
+	Name    string
+}
+
+type Dest struct {
+	Root string
+}
+
 type Configuration struct {
 	Recursive bool
 	Limit     int
 	Quiet     bool
-	Src       string
-	Dest      string
+	Src       Source
+	Dest      Dest
 	Host      string
-	Target    string
 }
 
 func parseFlags() (bool, *Configuration, error) {
 	var err error
 	var (
-		recursive   = pflag.BoolP("recursive", "r", false, `Recursively copy entire directories.  Note that scp follows symbolic links encountered in the tree traversal.`)
+		recursive   = pflag.BoolP("recursive", "r", false, `Recursively copy entire directories.`)
 		limit       = pflag.IntP("limit", "l", 0, `Limits the used bandwidth, specified in KB/s.`)
 		quiet       = pflag.BoolP("quiet", "q", false, `Quiet mode: disables the progress meter as well as warning and diagnostic messages.`)
 		showVersion = pflag.Bool("version", false, `Show release information about the nfscp and exit.`)
@@ -49,20 +59,44 @@ func parseFlags() (bool, *Configuration, error) {
 		err = fmt.Errorf("src, dst error")
 		return false, nil, err
 	}
-	//sources := args[:len(args)-1]
-	target := args[len(args)-1]
-	p := strings.Split(target, ":")
-	host := p[0]
-	dest := p[1]
+
+	srcFileInfo, err := os.Stat(args[0])
+	if os.IsNotExist(err) {
+		err = fmt.Errorf("src path not exist")
+		return false, nil, err
+	}
+	if *recursive {
+		if !srcFileInfo.IsDir() {
+			err = fmt.Errorf("src file must be directory")
+			return false, nil, err
+		}
+	} else {
+		if srcFileInfo.IsDir() {
+			err = fmt.Errorf("src is directory, must specify with -r option.")
+			return false, nil, err
+		}
+	}
+	src := Source{
+		IsDir:   srcFileInfo.IsDir(),
+		AbsPath: filepath.Clean(args[0]),
+		Name:    srcFileInfo.Name(),
+	}
+
+	mountPoint := args[len(args)-1]
+	p := strings.Split(mountPoint, ":")
+	host, destRoot := p[0], p[1]
+
+	dest := Dest{
+		Root: destRoot,
+	}
+
 	config := &Configuration{
 		Recursive: *recursive,
 		Limit:     *limit,
 		Quiet:     *quiet,
-		Src:       args[0],
+		Src:       src,
 		Dest:      dest,
 		Host:      host,
-		Target:    dest + "/" + args[0],
 	}
-	fmt.Printf("%+v\n", config)
 	return false, config, err
 }
