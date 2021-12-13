@@ -54,7 +54,7 @@ func parseFlags() (bool, *Configuration, error) {
 	}
 	args := pflag.Args()
 
-	fmt.Println(args)
+	//fmt.Println(args)
 	if len(args) != 2 {
 		err = fmt.Errorf("src, dst error")
 		return false, nil, err

@@ -8,7 +8,7 @@ import (
 )
 
 // DEFAULTFORMAT for progressbar
-const DEFAULTFORMAT = "\r%s   % 3d %%  %d kb %0.2f kb/s %v     timeshift: %f "
+const DEFAULTFORMAT = "\r%s   % 3d %%  %d kb %0.2f kb/s %v"
 
 // ProgressBar Struct for Progress Bar
 type ProgressBar struct {
@@ -37,5 +37,5 @@ func (pb ProgressBar) Update(tot int64, timeShift float64) {
 	}
 	totTime := time.Now().Sub(pb.StartTime)
 	spd := float64(tot/1000) / (totTime.Seconds() - timeShift)
-	fmt.Fprintf(pb.Out, pb.Format, pb.Subject, percent, tot, spd, totTime, timeShift)
+	fmt.Fprintf(pb.Out, pb.Format, pb.Subject, percent, tot, spd, totTime)
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"crypto/sha256"
 	"fmt"
 	"io"
@@ -18,9 +17,9 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/vmware/go-nfs-client/nfs"
 	"github.com/vmware/go-nfs-client/nfs/rpc"
+	"github.com/zhengtianbao/nfscp/pkg/limiter"
 	"github.com/zhengtianbao/nfscp/pkg/progressbar"
 	"github.com/zhengtianbao/nfscp/version"
-	"golang.org/x/time/rate"
 )
 
 func main() {
@@ -61,17 +60,18 @@ func main() {
 		if info.IsDir() {
 			// nfs create dir
 			// TODO: dir already exist check
-			fmt.Println("newdir:", mkpath)
+			//fmt.Println("newdir:", mkpath)
 			_, err = v.Mkdir(mkpath, 0777)
 			return err
 		}
 
-		fmt.Println("file:", info.Name(), "in directory:", path, "remote target:", mkpath)
+		//fmt.Println("file:", info.Name(), "in directory:", path, "remote target:", mkpath)
 		target := mkpath
 		if err = cp(v, path, target, conf.Limit); err != nil {
 			log.Fatal("fail")
 			return err
 		}
+		fmt.Println("")
 		return nil
 	})
 	if err != nil {
@@ -118,7 +118,7 @@ func cp(v *nfs.Target, source string, target string, speedLimit int) error {
 	}
 
 	lastPercent := int64(0)
-	w := NewWriter(wr)
+	w := limiter.NewWriter(wr)
 	w.SetRateLimit(float64(speedLimit * 1000 * 1024)) // speedLimit KB every seconds
 	readTime := float64(0)
 	for total < size {
@@ -148,7 +148,7 @@ func cp(v *nfs.Target, source string, target string, speedLimit int) error {
 		}
 		lastPercent = percent
 	}
-	err = w.w.Close()
+	err = wr.Close()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		return err
@@ -156,7 +156,7 @@ func cp(v *nfs.Target, source string, target string, speedLimit int) error {
 	pb.Update(total, readTime)
 	expectedSum := h.Sum(nil)
 
-	if err = w.w.Close(); err != nil {
+	if err = wr.Close(); err != nil {
 		fmt.Errorf("error committing: %s", err.Error())
 		return err
 	}
@@ -185,80 +185,4 @@ func cp(v *nfs.Target, source string, target string, speedLimit int) error {
 
 	//log.Printf("Sums match %x %x", actualSum, expectedSum)
 	return nil
-}
-
-const burstLimit = 1000 * 1000 * 1000
-
-type reader struct {
-	r       io.Reader
-	limiter *rate.Limiter
-	ctx     context.Context
-}
-
-// Reader returns a reader that is rate limited by
-// the given token bucket. Each token in the bucket
-// represents one byte.
-func NewReader(r io.Reader) *reader {
-	return &reader{
-		r:   r,
-		ctx: context.Background(),
-	}
-}
-
-func (r *reader) SetRateLimit(bytesPerSec float64) {
-	if bytesPerSec == 0 {
-		return
-	}
-	r.limiter = rate.NewLimiter(rate.Limit(bytesPerSec), burstLimit)
-	r.limiter.AllowN(time.Now(), burstLimit) // spend initial burst
-}
-
-func (r *reader) Read(buf []byte) (int, error) {
-	if r.limiter == nil {
-		return r.r.Read(buf)
-	}
-	n, err := r.r.Read(buf)
-	if n <= 0 {
-		return n, err
-	}
-
-	if err := r.limiter.WaitN(r.ctx, n); err != nil {
-		return n, err
-	}
-	return n, nil
-}
-
-type writer struct {
-	w       *nfs.File
-	limiter *rate.Limiter
-	ctx     context.Context
-}
-
-func NewWriter(w *nfs.File) *writer {
-	return &writer{
-		w:   w,
-		ctx: context.Background(),
-	}
-}
-
-func (s *writer) SetRateLimit(bytesPerSec float64) {
-	if bytesPerSec == 0 {
-		return
-	}
-	s.limiter = rate.NewLimiter(rate.Limit(bytesPerSec), burstLimit)
-	s.limiter.AllowN(time.Now(), burstLimit) // spend initial burst
-}
-
-func (s *writer) Write(p []byte) (int, error) {
-	if s.limiter == nil {
-		return s.w.Write(p)
-	}
-	n, err := s.w.Write(p)
-	if err != nil {
-		return n, err
-	}
-	if err := s.limiter.WaitN(s.ctx, n); err != nil {
-		return n, err
-	}
-	return n, err
 }
