@@ -16,7 +16,7 @@ endif
 TARGETS_DIR="_output/bin/${ARCH}"
 
 .PHONY: build
-build:  ## Build ingress controller, debug tool and pre-stop hook.
+build:
 	go build \
       -trimpath -ldflags="-buildid= -w -s \
       -X ${PKG}/version.RELEASE=${TAG} \
@@ -25,5 +25,5 @@ build:  ## Build ingress controller, debug tool and pre-stop hook.
       -o "${TARGETS_DIR}/nfscp" "${PKG}/cmd/nfscp"
 
 .PHONY: clean
-clean: ## Remove .gocache directory.
+clean:
 	rm -rf _output
