@@ -54,20 +54,19 @@ func parseFlags() (bool, *Configuration, error) {
 	}
 	args := pflag.Args()
 
-	//fmt.Println(args)
 	if len(args) != 2 {
-		err = fmt.Errorf("src, dst error")
+		err = fmt.Errorf("current version only support one src to one dest.")
 		return false, nil, err
 	}
 
 	srcFileInfo, err := os.Stat(args[0])
 	if os.IsNotExist(err) {
-		err = fmt.Errorf("src path not exist")
+		err = fmt.Errorf("src file: %s not exist", srcFileInfo)
 		return false, nil, err
 	}
 	if *recursive {
 		if !srcFileInfo.IsDir() {
-			err = fmt.Errorf("src file must be directory")
+			err = fmt.Errorf("src file must be directory when with -r option.")
 			return false, nil, err
 		}
 	} else {

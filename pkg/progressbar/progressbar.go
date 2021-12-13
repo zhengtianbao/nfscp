@@ -39,3 +39,8 @@ func (pb ProgressBar) Update(tot int64, timeShift float64) {
 	spd := float64(tot/1000) / (totTime.Seconds() - timeShift)
 	fmt.Fprintf(pb.Out, pb.Format, pb.Subject, percent, tot, spd, totTime)
 }
+
+// Update Updates the Progress Bar
+func (pb ProgressBar) Done() {
+	fmt.Fprintf(pb.Out, "\n")
+}
