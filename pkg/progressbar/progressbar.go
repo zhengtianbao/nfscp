@@ -40,7 +40,7 @@ func (pb ProgressBar) Update(tot int64, timeShift float64) {
 	fmt.Fprintf(pb.Out, pb.Format, pb.Subject, percent, tot, spd, totTime)
 }
 
-// Update Updates the Progress Bar
+// Done Force line break
 func (pb ProgressBar) Done() {
 	fmt.Fprintf(pb.Out, "\n")
 }
