@@ -5,7 +5,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/vmware/go-nfs-client/nfs"
 	"golang.org/x/time/rate"
 )
 
@@ -51,12 +50,12 @@ func (r *reader) Read(buf []byte) (int, error) {
 }
 
 type writer struct {
-	w       *nfs.File
+	w       io.Writer
 	limiter *rate.Limiter
 	ctx     context.Context
 }
 
-func NewWriter(w *nfs.File) *writer {
+func NewWriter(w io.Writer) *writer {
 	return &writer{
 		w:   w,
 		ctx: context.Background(),
