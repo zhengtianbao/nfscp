@@ -5,23 +5,32 @@ import (
 	"io"
 	"os"
 	"time"
+
+	"golang.org/x/term"
 )
 
 // DEFAULTFORMAT for progressbar
-const DEFAULTFORMAT = "\r%s   % 3d %%  %d kb %0.2f kb/s %v"
+const DEFAULTFORMAT = "\r%s %s %3d%%  %d kb %0.2f kb/s %v"
 
 // ProgressBar Struct for Progress Bar
 type ProgressBar struct {
-	Out       io.Writer
-	Format    string
-	Subject   string
-	StartTime time.Time
-	Size      int64
+	Out            io.Writer
+	Format         string
+	Subject        string
+	StartTime      time.Time
+	Size           int64
+	WiteSapceGraph string
 }
 
 // NewProgressBarTo Instantiatiates a new Progress Bar To
 func NewProgressBarTo(subject string, size int64, outPipe io.Writer) ProgressBar {
-	return ProgressBar{outPipe, DEFAULTFORMAT, subject, time.Now(), size}
+	width, _, _ := term.GetSize(0)
+	whiteSpaceLength := width - 50 - len(subject)
+	whiteSpace := " "
+	for i := 0; i < whiteSpaceLength; i++ {
+		whiteSpace += " "
+	}
+	return ProgressBar{outPipe, DEFAULTFORMAT, subject, time.Now(), size, whiteSpace}
 }
 
 // NewProgressBar Instantiatiates a new Progress Bar
@@ -37,7 +46,7 @@ func (pb ProgressBar) Update(tot int64, timeShift float64) {
 	}
 	totTime := time.Now().Sub(pb.StartTime)
 	spd := float64(tot/1000) / (totTime.Seconds() - timeShift)
-	fmt.Fprintf(pb.Out, pb.Format, pb.Subject, percent, tot, spd, totTime)
+	fmt.Fprintf(pb.Out, pb.Format, pb.Subject, pb.WiteSapceGraph, percent, tot, spd, totTime)
 }
 
 // Done Force line break
