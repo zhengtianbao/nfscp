@@ -8,7 +8,7 @@ import (
 	"golang.org/x/time/rate"
 )
 
-const burstLimit = 1000 * 1000 * 1000
+const burstLimit = 1024 * 1024 * 1024
 
 type reader struct {
 	r       io.Reader
