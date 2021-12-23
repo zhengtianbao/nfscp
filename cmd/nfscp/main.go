@@ -49,8 +49,8 @@ func main() {
 		rel := strings.Split(path, conf.Src.AbsPath)
 		mkpath := conf.Src.Name + rel[1]
 		if info.IsDir() {
-			// TODO: use src file mode
-			_, err = v.Mkdir(mkpath, 0777)
+			mode := info.Mode()
+			_, err = v.Mkdir(mkpath, mode.Perm())
 			// skip file exist error
 			if err == os.ErrExist {
 				err = nil

@@ -22,8 +22,10 @@ func Transfer(v *nfs.Target, source string, target string, speedLimit int) error
 		fmt.Printf("error openning source file: %s\n", err.Error())
 		return err
 	}
-	// TODO: target FileMode set as source
-	wr, err := v.OpenFile(target, 0777)
+
+	source_stat, _ := f.Stat()
+	mode := source_stat.Mode()
+	wr, err := v.OpenFile(target, mode.Perm())
 	if err != nil {
 		fmt.Printf("error openning target file: %s\n", err.Error())
 		return err
