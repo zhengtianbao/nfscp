@@ -35,8 +35,9 @@ func main() {
 		os.Exit(1)
 	}
 	defer mount.Close()
-	// TODO: use hostname
-	auth := rpc.NewAuthUnix("hasselhoff", 1000, 1000)
+	// use nfsnobody nfsnogroup
+	hostname, _ := os.Hostname()
+	auth := rpc.NewAuthUnix(hostname, 0, 0)
 
 	v, err := mount.Mount(conf.Dest.Root, auth.Auth())
 	if err != nil {
