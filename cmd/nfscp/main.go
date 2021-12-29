@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spf13/pflag"
 	"github.com/vmware/go-nfs-client/nfs"
 	"github.com/vmware/go-nfs-client/nfs/rpc"
 	"github.com/zhengtianbao/nfscp/pkg/nfscp"
@@ -21,7 +20,6 @@ func main() {
 	showVersion, conf, err := parseFlags()
 	if err != nil {
 		fmt.Printf("nfscp execute failed: %v\n", err)
-		pflag.Usage()
 		os.Exit(1)
 	}
 	if showVersion {

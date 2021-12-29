@@ -61,7 +61,7 @@ func parseFlags() (bool, *Configuration, error) {
 
 	srcFileInfo, err := os.Stat(args[0])
 	if os.IsNotExist(err) {
-		err = fmt.Errorf("src file: %s not exist", srcFileInfo)
+		err = fmt.Errorf("src file: %s not exist", args[0])
 		return false, nil, err
 	}
 	if *recursive {
