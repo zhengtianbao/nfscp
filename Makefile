@@ -17,12 +17,16 @@ TARGETS_DIR="_output/bin/${ARCH}"
 
 .PHONY: build
 build:
-	go build \
+	CGO_ENABLED=0 go build \
       -trimpath -ldflags="-buildid= -w -s \
       -X ${PKG}/version.RELEASE=${TAG} \
       -X ${PKG}/version.COMMIT=${COMMIT_SHA} \
       -X ${PKG}/version.REPO=${REPO_INFO}" \
       -o "${TARGETS_DIR}/nfscp" "${PKG}/cmd/nfscp"
+
+.PHONY: image
+image: build
+	docker build -t nfscp .
 
 .PHONY: clean
 clean:
