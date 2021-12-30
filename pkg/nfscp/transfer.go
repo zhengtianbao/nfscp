@@ -116,3 +116,96 @@ func Transfer(v *nfs.Target, source string, target string, speedLimit int) error
 
 	return nil
 }
+
+func Fetch(v *nfs.Target, remote string, local string, speedLimit int) error {
+	f, err := v.Open(remote)
+	if err != nil {
+		fmt.Printf("error openning remote file: %s\n", err.Error())
+		return err
+	}
+	wr, err := os.Create(local)
+	if err != nil {
+		fmt.Printf("error writing local file: %s\n", err.Error())
+		return err
+	}
+
+	// calculate the sha
+	h := sha256.New()
+	t := io.TeeReader(f, h)
+	fs, _, _ := f.Lookup(remote)
+	size := int64(fs.Size())
+
+	// Copy filesize
+	total := int64(0)
+	pb := progressbar.NewProgressBarTo(remote, size, os.Stdout)
+	pb.Update(0, 0)
+	fsinfo, _ := v.FSInfo()
+
+	bufferSize := int64(fsinfo.RTPref)
+
+	lastPercent := int64(0)
+	w := limiter.NewWriter(wr)
+	w.SetRateLimit(float64(speedLimit * 1000 * 1024)) // speedLimit KB every seconds
+	readTime := float64(0)
+	for total < size {
+		if bufferSize > size-total {
+			bufferSize = size - total
+		}
+		readStartTime := time.Now()
+		b := make([]byte, bufferSize)
+		n, err := t.Read(b)
+
+		if err != nil && err != io.EOF {
+			fmt.Printf("Read error: %s\n", err.Error())
+			return err
+		}
+
+		readTime += time.Now().Sub(readStartTime).Seconds()
+		total += int64(n)
+		// write to file
+		_, err = w.Write(b[:n])
+		if err != nil {
+			fmt.Printf("Write error: %s\n", err.Error())
+			return err
+		}
+		percent := (100 * total) / size
+		if percent > lastPercent {
+			pb.Update(total, readTime)
+		}
+		lastPercent = percent
+	}
+	pb.Update(total, readTime)
+	pb.Done()
+
+	expectedSum := h.Sum(nil)
+
+	if err = wr.Close(); err != nil {
+		fmt.Printf("error committing: %s\n", err.Error())
+		return err
+	}
+
+	// get the file we wrote and calc the sum
+	rdr, err := os.Open(local)
+	if err != nil {
+		fmt.Printf("read error: %v", err)
+		return err
+	}
+
+	h = sha256.New()
+	t = io.TeeReader(rdr, h)
+
+	_, err = ioutil.ReadAll(t)
+	if err != nil {
+		fmt.Printf("readall error: %v", err)
+		return err
+	}
+	actualSum := h.Sum(nil)
+
+	// TODO: if sum not match, retry
+	if bytes.Compare(actualSum, expectedSum) != 0 {
+		e := fmt.Errorf("sums didn't match. actual=%x expected=%s", actualSum, expectedSum)
+		return e
+	}
+
+	return nil
+}

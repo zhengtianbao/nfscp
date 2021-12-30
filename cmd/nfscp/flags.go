@@ -22,12 +22,19 @@ type Dest struct {
 }
 
 type Configuration struct {
-	Recursive bool
-	Limit     int
-	Quiet     bool
-	Src       Source
-	Dest      Dest
-	Host      string
+	Recursive  bool
+	Limit      int
+	Quiet      bool
+	Src        Source
+	Dest       Dest
+	Host       string
+	Reverse    bool
+	MountPoint string
+}
+
+func isRemote(s string) bool {
+	// TODO: here just check if contains colon
+	return strings.Contains(s, ":")
 }
 
 func parseFlags() (bool, *Configuration, error) {
@@ -59,7 +66,40 @@ func parseFlags() (bool, *Configuration, error) {
 		return false, nil, err
 	}
 
-	srcFileInfo, err := os.Stat(args[0])
+	var reverse bool
+	local, remote := args[0], args[1]
+	if isRemote(args[0]) {
+		local, remote = args[1], args[0]
+		reverse = true
+	}
+	if reverse {
+		r := strings.Split(remote, ":")
+		host, path := r[0], r[1]
+		basename := filepath.Base(path)
+		src := Source{
+			IsDir:   *recursive,
+			AbsPath: filepath.Clean(path),
+			Name:    basename,
+		}
+		mountPoint := filepath.Dir(path)
+		dest := Dest{
+			Root: filepath.Clean(local),
+		}
+
+		config := &Configuration{
+			Recursive:  *recursive,
+			Limit:      *limit,
+			Quiet:      *quiet,
+			Src:        src,
+			Dest:       dest,
+			Host:       host,
+			Reverse:    reverse,
+			MountPoint: mountPoint,
+		}
+		return false, config, err
+	}
+
+	srcFileInfo, err := os.Stat(local)
 	if os.IsNotExist(err) {
 		err = fmt.Errorf("src file: %s not exist", args[0])
 		return false, nil, err
@@ -90,12 +130,14 @@ func parseFlags() (bool, *Configuration, error) {
 	}
 
 	config := &Configuration{
-		Recursive: *recursive,
-		Limit:     *limit,
-		Quiet:     *quiet,
-		Src:       src,
-		Dest:      dest,
-		Host:      host,
+		Recursive:  *recursive,
+		Limit:      *limit,
+		Quiet:      *quiet,
+		Src:        src,
+		Dest:       dest,
+		Host:       host,
+		Reverse:    reverse,
+		MountPoint: destRoot,
 	}
 	return false, config, err
 }
