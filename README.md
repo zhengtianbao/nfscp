@@ -5,18 +5,16 @@ nfscp is a tool to transfer files between host and a NFS(Network File System) di
 ## Features
 
 - Copy file from local to NFS
-- Copy file from NFS to local (*)
+- Copy file from NFS to local
 - Recursively copy directory from local to NFS
-- Recursively copy directory from NFS to local (*)
+- Recursively copy directory from NFS to local
 - Transfer speed limit
-
-Note: ends with (*) means not implemented yet.
 
 ## Installation
 
 To install type (in the folder that contains the Makefile):
 
-``` bash
+```
 make build
 ```
 
@@ -28,6 +26,12 @@ Copy local directory to remote NFS server with speed limit 10KB/s:
 
 ```
 nfscp -l 10 -r /path/to/dir 192.168.1.100:/nfs/
+```
+
+Copy remote NFS file **hello.txt** to local under **/tmp** directory:
+
+```
+nfscp 192.168.1.100:/nfs/hello.txt /tmp
 ```
 
 ## Help
