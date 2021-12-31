@@ -1,7 +1,7 @@
 # set default shell
 SHELL=/bin/bash -o pipefail -o errexit
 
-TAG ?= $(shell cat TAG)
+TAG ?= $(shell git describe --tags --dirty --always)
 
 REPO_INFO ?= $(shell git config --get remote.origin.url)
 COMMIT_SHA ?= git-$(shell git rev-parse --short HEAD)
@@ -13,12 +13,13 @@ ifeq ($(ARCH),)
     $(error mandatory variable ARCH is empty, either set it when calling the command or make sure 'go env GOARCH' works)
 endif
 
-TARGETS_DIR="_output/bin/${ARCH}"
+TARGETS_DIR = _output/bin/${ARCH}
 
 .PHONY: build
 build:
 	CGO_ENABLED=0 go build \
-      -trimpath -ldflags="-buildid= -w -s \
+	  -gcflags=all="-N -l" \
+      -ldflags="-buildid= \
       -X ${PKG}/version.RELEASE=${TAG} \
       -X ${PKG}/version.COMMIT=${COMMIT_SHA} \
       -X ${PKG}/version.REPO=${REPO_INFO}" \
