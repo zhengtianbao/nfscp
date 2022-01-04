@@ -144,37 +144,37 @@ func Fetch(v *nfs.Target, remote string, local string, speedLimit int) error {
 	bufferSize := int64(fsinfo.RTPref)
 
 	lastPercent := int64(0)
-	w := limiter.NewWriter(wr)
-	w.SetRateLimit(float64(speedLimit * 1000 * 1024)) // speedLimit KB every seconds
-	readTime := float64(0)
+	r := limiter.NewReader(t)
+	r.SetRateLimit(float64(speedLimit * 1000 * 1024)) // speedLimit KB every seconds
+	writeTime := float64(0)
 	for total < size {
 		if bufferSize > size-total {
 			bufferSize = size - total
 		}
-		readStartTime := time.Now()
 		b := make([]byte, bufferSize)
-		n, err := t.Read(b)
+		n, err := r.Read(b)
 
 		if err != nil && err != io.EOF {
 			fmt.Printf("Read error: %s\n", err.Error())
 			return err
 		}
-
-		readTime += time.Now().Sub(readStartTime).Seconds()
 		total += int64(n)
+
+		writeStartTime := time.Now()
 		// write to file
-		_, err = w.Write(b[:n])
+		_, err = wr.Write(b[:n])
 		if err != nil {
 			fmt.Printf("Write error: %s\n", err.Error())
 			return err
 		}
+		writeTime += time.Now().Sub(writeStartTime).Seconds()
 		percent := (100 * total) / size
 		if percent > lastPercent {
-			pb.Update(total, readTime)
+			pb.Update(total, writeTime)
 		}
 		lastPercent = percent
 	}
-	pb.Update(total, readTime)
+	pb.Update(total, writeTime)
 	pb.Done()
 
 	expectedSum := h.Sum(nil)
