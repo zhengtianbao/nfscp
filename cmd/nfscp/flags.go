@@ -82,6 +82,10 @@ func parseFlags() (bool, *Configuration, error) {
 			Name:    basename,
 		}
 		mountPoint := filepath.Dir(path)
+		if _, err := os.Stat(filepath.Dir(local)); err != nil {
+			err = fmt.Errorf("parent of local path: %s not exist", local)
+			return false, nil, err
+		}
 		dest := Dest{
 			Root: filepath.Clean(local),
 		}
