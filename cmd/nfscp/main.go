@@ -56,7 +56,7 @@ func main() {
 				return err
 			}
 			target := mkpath
-			if err = nfscp.Fetch(v, path, target, conf.Limit); err != nil {
+			if err = nfscp.Fetch(v, path, target, conf.Limit, conf.Quiet); err != nil {
 				fmt.Printf("fail to copy %s to %s\n", path, target)
 				return err
 			}
@@ -82,7 +82,7 @@ func main() {
 			}
 
 			target := mkpath
-			if err = nfscp.Transfer(v, path, target, conf.Limit); err != nil {
+			if err = nfscp.Transfer(v, path, target, conf.Limit, conf.Quiet); err != nil {
 				fmt.Printf("fail to copy %s to %s\n", path, target)
 				return err
 			}

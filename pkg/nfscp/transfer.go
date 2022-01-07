@@ -16,7 +16,7 @@ import (
 
 const maxBuffSize = 1024 * 1024 // 1024 kb
 
-func Transfer(v *nfs.Target, source string, target string, speedLimit int) error {
+func Transfer(v *nfs.Target, source string, target string, speedLimit int, showProcessBar bool) error {
 	f, err := os.Open(source)
 	if err != nil {
 		fmt.Printf("error openning source file: %s\n", err.Error())
@@ -39,7 +39,13 @@ func Transfer(v *nfs.Target, source string, target string, speedLimit int) error
 
 	// Copy filesize
 	total := int64(0)
-	pb := progressbar.NewProgressBarTo(source, size, os.Stdout)
+	var outPipe io.Writer
+	if showProcessBar {
+		outPipe = ioutil.Discard
+	} else {
+		outPipe = os.Stdout
+	}
+	pb := progressbar.NewProgressBarTo(source, size, outPipe)
 	pb.Update(0, 0)
 	fsinfo, _ := v.FSInfo()
 
@@ -117,7 +123,7 @@ func Transfer(v *nfs.Target, source string, target string, speedLimit int) error
 	return nil
 }
 
-func Fetch(v *nfs.Target, remote string, local string, speedLimit int) error {
+func Fetch(v *nfs.Target, remote string, local string, speedLimit int, showProcessBar bool) error {
 	f, err := v.Open(remote)
 	if err != nil {
 		fmt.Printf("error openning remote file: %s\n", err.Error())
@@ -137,7 +143,13 @@ func Fetch(v *nfs.Target, remote string, local string, speedLimit int) error {
 
 	// Copy filesize
 	total := int64(0)
-	pb := progressbar.NewProgressBarTo(remote, size, os.Stdout)
+	var outPipe io.Writer
+	if showProcessBar {
+		outPipe = ioutil.Discard
+	} else {
+		outPipe = os.Stdout
+	}
+	pb := progressbar.NewProgressBarTo(remote, size, outPipe)
 	pb.Update(0, 0)
 	fsinfo, _ := v.FSInfo()
 
