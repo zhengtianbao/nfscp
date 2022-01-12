@@ -16,6 +16,11 @@ import (
 
 const maxBuffSize = 1024 * 1024 // 1024 kb
 
+type pinfo struct {
+	total     int64
+	timeShift float64
+}
+
 func Transfer(v *nfs.Target, source string, target string, speedLimit int, showProcessBar bool) error {
 	f, err := os.Open(source)
 	if err != nil {
@@ -45,8 +50,23 @@ func Transfer(v *nfs.Target, source string, target string, speedLimit int, showP
 	} else {
 		outPipe = os.Stdout
 	}
-	pb := progressbar.NewProgressBarTo(source, size, outPipe)
-	pb.Update(0, 0)
+
+	done := make(chan bool)
+	p := make(chan pinfo)
+	go func(done chan bool, pinfo chan pinfo) {
+		pb := progressbar.NewProgressBarTo(source, size, outPipe)
+		pb.Update(0, 0)
+		for {
+			select {
+			case <-done:
+				pb.Done()
+				return
+			case p := <-pinfo:
+				pb.Update(p.total, p.timeShift)
+			}
+		}
+	}(done, p)
+
 	fsinfo, _ := v.FSInfo()
 
 	var bufferSize int64
@@ -83,12 +103,12 @@ func Transfer(v *nfs.Target, source string, target string, speedLimit int, showP
 		}
 		percent := (100 * total) / size
 		if percent > lastPercent {
-			pb.Update(total, readTime)
+			p <- pinfo{total, readTime}
 		}
 		lastPercent = percent
 	}
-	pb.Update(total, readTime)
-	pb.Done()
+	p <- pinfo{total, readTime}
+	done <- true
 
 	expectedSum := h.Sum(nil)
 
@@ -149,8 +169,23 @@ func Fetch(v *nfs.Target, remote string, local string, speedLimit int, showProce
 	} else {
 		outPipe = os.Stdout
 	}
-	pb := progressbar.NewProgressBarTo(remote, size, outPipe)
-	pb.Update(0, 0)
+
+	done := make(chan bool)
+	p := make(chan pinfo)
+	go func(done chan bool, pinfo chan pinfo) {
+		pb := progressbar.NewProgressBarTo(remote, size, outPipe)
+		pb.Update(0, 0)
+		for {
+			select {
+			case <-done:
+				pb.Done()
+				return
+			case p := <-pinfo:
+				pb.Update(p.total, p.timeShift)
+			}
+		}
+	}(done, p)
+
 	fsinfo, _ := v.FSInfo()
 
 	bufferSize := int64(fsinfo.RTPref)
@@ -182,12 +217,12 @@ func Fetch(v *nfs.Target, remote string, local string, speedLimit int, showProce
 		writeTime += time.Now().Sub(writeStartTime).Seconds()
 		percent := (100 * total) / size
 		if percent > lastPercent {
-			pb.Update(total, writeTime)
+			p <- pinfo{total, writeTime}
 		}
 		lastPercent = percent
 	}
-	pb.Update(total, writeTime)
-	pb.Done()
+	p <- pinfo{total, writeTime}
+	done <- true
 
 	expectedSum := h.Sum(nil)
 
