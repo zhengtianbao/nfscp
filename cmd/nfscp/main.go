@@ -69,6 +69,10 @@ func main() {
 		}
 	} else {
 		walkFunc := func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+				return err
+			}
 			rel := strings.Split(path, conf.Src.AbsPath)
 			mkpath := conf.Src.Name + rel[1]
 			if info.IsDir() {
