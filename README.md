@@ -1,6 +1,6 @@
 ## Overview
 
-nfscp is a tool to transfer files between host and a NFS(Network File System) directly without mount.
+nfscp is a tool to transfer files between host and a NFS(Network File System) directly without `MOUNT(8)`.
 
 ## Features
 
@@ -25,13 +25,13 @@ The target binary will be at `_output/bin/$ARCH/nfscp`.
 Copy local directory to remote NFS server with speed limit 10KB/s:
 
 ```
-nfscp -l 10 -r /path/to/dir 192.168.1.100:/nfs/
+nfscp -l 10 -r /path/to/dir ${NFS}:/nfs/
 ```
 
 Copy remote NFS file **hello.txt** to local under **/tmp** directory:
 
 ```
-nfscp 192.168.1.100:/nfs/hello.txt /tmp
+nfscp ${NFS}:/nfs/hello.txt /tmp
 ```
 
 ## Help
