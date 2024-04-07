@@ -62,7 +62,7 @@ func parseFlags() (bool, *Configuration, error) {
 	args := pflag.Args()
 
 	if len(args) != 2 {
-		err = fmt.Errorf("current version only support one src to one dest.")
+		err = fmt.Errorf("current version only support one src to one dest")
 		return false, nil, err
 	}
 
@@ -110,12 +110,12 @@ func parseFlags() (bool, *Configuration, error) {
 	}
 	if *recursive {
 		if !srcFileInfo.IsDir() {
-			err = fmt.Errorf("src file must be directory when with -r option.")
+			err = fmt.Errorf("src file must be directory when with -r option")
 			return false, nil, err
 		}
 	} else {
 		if srcFileInfo.IsDir() {
-			err = fmt.Errorf("src is directory, must specify with -r option.")
+			err = fmt.Errorf("src is directory, must specify with -r option")
 			return false, nil, err
 		}
 	}
